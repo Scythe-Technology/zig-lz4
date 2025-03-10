@@ -26,7 +26,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const lz4_module = b.addModule("zig-lz4", .{
+    const lz4_module = b.addModule("lz4", .{
         .root_source_file = b.path("src/lib.zig"),
     });
 
