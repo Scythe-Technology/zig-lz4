@@ -1,7 +1,7 @@
 # zig-lz4
 
-![zig-version](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FSnorlaxAssist%2Fzig-lz4%2Fmaster%2F.github%2Fworkflows%2Ftests.yml&query=%24.jobs.test.steps%5B1%5D.with.version&label=zig-version)
-[![tests](https://github.com/SnorlaxAssist/zig-lz4/actions/workflows/tests.yml/badge.svg)](https://github.com/SnorlaxAssist/zig-lz4/actions/workflows/tests.yml)
+![zig-version](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FScythe-Technology%2Fzig-lz4%2Fmaster%2F.github%2Fworkflows%2Ftests.yml&query=%24.jobs.test.steps%5B1%5D.with.version&label=zig-version)
+[![tests](https://github.com/Scythe-Technology/zig-lz4/actions/workflows/tests.yml/badge.svg)](https://github.com/Scythe-Technology/zig-lz4/actions/workflows/tests.yml)
 
 Unofficial Zig bindings for [LZ4](https://github.com/lz4/lz4).
 
@@ -14,23 +14,23 @@ Unofficial Zig bindings for [LZ4](https://github.com/lz4/lz4).
 ## Installation
 1. Add dependency to `build.zig.zon`
 ```
-zig fetch --save https://github.com/SnorlaxAssist/zig-lz4/archive/refs/heads/master.tar.gz
+zig fetch --save https://github.com/Scythe-Technology/zig-lz4/archive/refs/heads/master.tar.gz
 ```
 2. Add module in `build.zig`
 ```zig
-const ziglz4 = b.dependency("zig-lz4", .{
+const ziglz4 = b.dependency("lz4", .{
     .target = target,
     .optimize = optimize,
 });
-exe.addModule("lz4", ziglz4.module("zig-lz4"));
+exe.addModule("lz4", ziglz4.module("lz4"));
 ```
 
 ## Documentation
-[Link](https://snorlaxassist.github.io/zig-lz4/)
+[Link](https://scythe-technology.github.io/zig-lz4/)
 
 ## Examples
 
-### File [Encoder](https://snorlaxassist.github.io/zig-lz4/#docs.Encoder)
+### File [Encoder](https://scythe-technology.github.io/zig-lz4/#docs.Encoder)
 ```zig
 const std = @import("std");
 
@@ -63,7 +63,7 @@ const sizeHintHeader : [4]u8 = @bitCast(@as(u32, @intCast(input.len)));
 try std.fs.cwd().writeFile("compressedFile", fileOutput);
 ```
 
-### File [Decoder](https://snorlaxassist.github.io/zig-lz4/#docs.Encoder)
+### File [Decoder](https://scythe-technology.github.io/zig-lz4/#docs.Encoder)
 ```zig
 const std = @import("std");
 
@@ -85,7 +85,7 @@ defer allocator.free(decompressed);
 std.debug.print("Decompressed: {s}\n", .{decompressed});
 ```
 
-### Simple [Compression & Decompression](https://snorlaxassist.github.io/zig-lz4/#docs.Standard)
+### Simple [Compression & Decompression](https://scythe-technology.github.io/zig-lz4/#docs.Standard)
 ```zig
 const std = @import("std");
 
