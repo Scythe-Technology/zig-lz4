@@ -1,6 +1,6 @@
 .{
     .name = .lz4,
-    .version = "0.1.1",
+    .version = "0.2.0",
     .dependencies = .{
         .lz4 = .{
             .url = "https://github.com/lz4/lz4/archive/refs/tags/v1.9.4.tar.gz",
