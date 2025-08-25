@@ -19,11 +19,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "lz4",
-        .root_source_file = b.path(LIB_SRC),
-        .target = target,
-        .optimize = optimize,
+        .linkage = .static,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(LIB_SRC),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const lz4_module = b.addModule("lz4", .{
@@ -51,9 +54,11 @@ pub fn build(b: *std.Build) void {
 
     // Unit tests
     const lib_unit_tests = b.addTest(.{
-        .root_source_file = b.path(LIB_SRC),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(LIB_SRC),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     lib_unit_tests.linkLibrary(lib);
@@ -69,9 +74,11 @@ pub fn build(b: *std.Build) void {
 
     const docs_obj = b.addObject(.{
         .name = "docs",
-        .root_source_file = b.path(LIB_SRC),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(LIB_SRC),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     docs_obj.linkLibrary(lib);

@@ -268,53 +268,6 @@ pub const Frame = struct {
 
 const INPUT_CHUNK_SIZE = 64 * 1024;
 
-const ResizableWriteError = error{NoSpaceLeft};
-const ResizableBufferStream = struct {
-    allocator: Allocator = undefined,
-    buffer: []u8,
-    pos: usize,
-
-    const Self = @This();
-
-    pub const Writer = std.io.Writer(*Self, ResizableWriteError, write);
-
-    pub fn init(allocator: Allocator) !ResizableBufferStream {
-        const buffer = try allocator.alloc(u8, 0);
-        return .{
-            .allocator = allocator,
-            .buffer = buffer,
-            .pos = 0,
-        };
-    }
-
-    pub fn deinit(self: *Self) void {
-        self.allocator.free(self.buffer);
-    }
-
-    pub fn getPos(self: *Self) usize {
-        return self.pos;
-    }
-
-    pub fn writer(self: *Self) Writer {
-        return .{ .context = self };
-    }
-
-    pub fn write(self: *Self, bytes: []const u8) !usize {
-        const pos = self.pos;
-        if (bytes.len == 0) return 0;
-
-        const n = bytes.len;
-        if (pos + n > self.buffer.len) self.buffer = self.allocator.realloc(self.buffer, pos + n) catch {
-            return error.NoSpaceLeft;
-        };
-
-        @memcpy(self.buffer[pos..][0..n], bytes[0..n]);
-        self.pos += n;
-
-        return n;
-    }
-};
-
 pub const Encoder = struct {
     allocator: Allocator = undefined,
     ctx: *Frame.CompressionContext = undefined,
@@ -381,7 +334,7 @@ pub const Encoder = struct {
         return encoder;
     }
 
-    pub fn compressStream(encoder: *Encoder, streamWriter: std.io.AnyWriter, src: []const u8) !void {
+    pub fn compressStream(encoder: *Encoder, streamWriter: *std.io.Writer, src: []const u8) !void {
         const pref = Frame.Preferences{
             .compressionLevel = @intCast(encoder.level),
             .frameInfo = .{
@@ -408,7 +361,8 @@ pub const Encoder = struct {
         while (offset < src.len) {
             const readSize = @min(src.len - offset, INPUT_CHUNK_SIZE);
             const updateLen = try encoder.ctx.compressUpdate(writer.ptr, bound, src[offset..].ptr, readSize, null);
-            if (updateLen == 0) break;
+            if (updateLen == 0)
+                break;
             try streamWriter.writeAll(writer[0..updateLen]);
             offset += readSize;
         }
@@ -420,13 +374,14 @@ pub const Encoder = struct {
     pub fn compress(encoder: *Encoder, src: []const u8) ![]const u8 {
         const allocator = encoder.allocator;
 
-        var buffStream = try ResizableBufferStream.init(allocator);
-        errdefer buffStream.deinit();
-        const buffWriter = buffStream.writer().any();
+        var allocating: std.Io.Writer.Allocating = .init(allocator);
+        const writer = &allocating.writer;
 
-        try encoder.compressStream(buffWriter, src);
+        try encoder.compressStream(writer, src);
 
-        return buffStream.buffer;
+        try writer.flush();
+
+        return try allocating.toOwnedSlice();
     }
 };
 
