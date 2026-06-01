@@ -53,7 +53,7 @@ pub fn build(b: *std.Build) void {
     const lib_unit_tests = b.addTest(.{
         .root_module = mod,
         .use_llvm = true,
-        .use_lld = true,
+        .use_lld = if (target.result.os.tag == .linux) true else null,
     });
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
