@@ -334,7 +334,7 @@ pub const Encoder = struct {
         return encoder;
     }
 
-    pub fn compressStream(encoder: *Encoder, streamWriter: *std.io.Writer, src: []const u8) !void {
+    pub fn compressStream(encoder: *Encoder, writer: *std.Io.Writer, src: []const u8) !void {
         const pref = Frame.Preferences{
             .compressionLevel = @intCast(encoder.level),
             .frameInfo = .{
@@ -351,24 +351,24 @@ pub const Encoder = struct {
         };
         const bound = Frame.compressBound(src.len, &pref);
 
-        const writer = try encoder.allocator.alloc(u8, bound);
-        defer encoder.allocator.free(writer);
+        const buf = try encoder.allocator.alloc(u8, bound);
+        defer encoder.allocator.free(buf);
 
-        const startRes = try encoder.ctx.compressBegin(writer.ptr, bound, &pref);
-        try streamWriter.writeAll(writer[0..startRes]);
+        const startRes = try encoder.ctx.compressBegin(buf.ptr, bound, &pref);
+        try writer.writeAll(buf[0..startRes]);
 
         var offset: usize = 0;
         while (offset < src.len) {
             const readSize = @min(src.len - offset, INPUT_CHUNK_SIZE);
-            const updateLen = try encoder.ctx.compressUpdate(writer.ptr, bound, src[offset..].ptr, readSize, null);
+            const updateLen = try encoder.ctx.compressUpdate(buf.ptr, bound, src[offset..].ptr, readSize, null);
             if (updateLen == 0)
                 break;
-            try streamWriter.writeAll(writer[0..updateLen]);
+            try writer.writeAll(buf[0..updateLen]);
             offset += readSize;
         }
 
-        const endRes = try encoder.ctx.compressEnd(writer.ptr, bound, null);
-        try streamWriter.writeAll(writer[0..endRes]);
+        const endRes = try encoder.ctx.compressEnd(buf.ptr, bound, null);
+        try writer.writeAll(buf[0..endRes]);
     }
 
     pub fn compress(encoder: *Encoder, src: []const u8) ![]const u8 {
@@ -430,9 +430,21 @@ test "version" {
     try testing.expectEqualStrings("1.9.4", getVersion());
 }
 
+fn readFileAlloc(allocator: Allocator, io: std.Io, path: []const u8) ![]u8 {
+    const file = try std.Io.Dir.openFile(.cwd(), io, path, .{});
+    defer file.close(io);
+
+    var buf: [8192]u8 = undefined;
+    var file_reader = file.reader(io, &buf);
+    var reader = &file_reader.interface;
+
+    return reader.allocRemaining(allocator, .unlimited);
+}
+
 test "frame compression & decompression 112k sample" {
     const allocator = testing.allocator;
-    const sampleText = try std.fs.cwd().readFileAlloc(allocator, "./files/112k-sample.txt", std.math.maxInt(usize));
+
+    const sampleText = try readFileAlloc(allocator, testing.io, "./files/112k-sample.txt");
     defer allocator.free(sampleText);
 
     // Compression
@@ -445,7 +457,7 @@ test "frame compression & decompression 112k sample" {
     const compressed = try encoder.compress(sampleText);
     defer allocator.free(compressed);
 
-    const expectedCompressed = try std.fs.cwd().readFileAlloc(allocator, "./files/112k-compressed-expected.txt", std.math.maxInt(usize));
+    const expectedCompressed = try readFileAlloc(allocator, testing.io, "./files/112k-compressed-expected.txt");
     defer allocator.free(expectedCompressed);
     try testing.expectEqualStrings(expectedCompressed, compressed);
 
@@ -460,7 +472,7 @@ test "frame compression & decompression 112k sample" {
 
 test "frame compression & decompression 1k sample" {
     const allocator = testing.allocator;
-    const sampleText = try std.fs.cwd().readFileAlloc(allocator, "./files/1k-sample.txt", std.math.maxInt(usize));
+    const sampleText = try readFileAlloc(allocator, testing.io, "./files/1k-sample.txt");
     defer allocator.free(sampleText);
 
     // Compression
@@ -473,7 +485,7 @@ test "frame compression & decompression 1k sample" {
     const compressed = try encoder.compress(sampleText);
     defer allocator.free(compressed);
 
-    const expectedCompressed = try std.fs.cwd().readFileAlloc(allocator, "./files/1k-compressed-expected.txt", std.math.maxInt(usize));
+    const expectedCompressed = try readFileAlloc(allocator, testing.io, "./files/1k-compressed-expected.txt");
     defer allocator.free(expectedCompressed);
     try testing.expectEqualStrings(expectedCompressed, compressed);
 
@@ -494,7 +506,7 @@ test "standard compression & decompression" {
     const compressed = try Standard.compress(allocator, sample);
     defer allocator.free(compressed);
 
-    const expectedCompressed = try std.fs.cwd().readFileAlloc(allocator, "./files/basic-compressed-expected.txt", std.math.maxInt(usize));
+    const expectedCompressed = try readFileAlloc(allocator, testing.io, "./files/basic-compressed-expected.txt");
     defer allocator.free(expectedCompressed);
 
     try testing.expectEqualStrings(expectedCompressed, compressed);

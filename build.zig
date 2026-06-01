@@ -19,32 +19,29 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const mod = b.addModule("root", .{
+        .root_source_file = b.path("src/lib.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+
     const lib = b.addLibrary(.{
         .name = "lz4",
         .linkage = .static,
-        .root_module = b.createModule(.{
-            .root_source_file = b.path(LIB_SRC),
-            .target = target,
-            .optimize = optimize,
-        }),
+        .root_module = mod,
     });
-
-    const lz4_module = b.addModule("lz4", .{
-        .root_source_file = b.path("src/lib.zig"),
-    });
-
-    lz4_module.linkLibrary(lib);
 
     const FLAGS = [_][]const u8{
         "-DLZ4LIB_API=extern\"C\"",
     };
 
     for (HEADER_DIRS) |dir| {
-        lib.addIncludePath(lz4_dependency.path(dir));
+        mod.addIncludePath(lz4_dependency.path(dir));
     }
-    lib.linkLibCpp();
+
     for (SOURCE_FILES) |file| {
-        lib.addCSourceFile(.{ .file = lz4_dependency.path(file), .flags = &FLAGS });
+        mod.addCSourceFile(.{ .file = lz4_dependency.path(file), .flags = &FLAGS });
     }
 
     lib.installHeader(lz4_dependency.path("lib/lz4.h"), "lz4.h");
@@ -54,15 +51,10 @@ pub fn build(b: *std.Build) void {
 
     // Unit tests
     const lib_unit_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path(LIB_SRC),
-            .target = target,
-            .optimize = optimize,
-        }),
+        .root_module = mod,
+        .use_llvm = true,
+        .use_lld = true,
     });
-
-    lib_unit_tests.linkLibrary(lib);
-    lib_unit_tests.addIncludePath(lz4_dependency.path("lib"));
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
@@ -74,15 +66,8 @@ pub fn build(b: *std.Build) void {
 
     const docs_obj = b.addObject(.{
         .name = "docs",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path(LIB_SRC),
-            .target = target,
-            .optimize = optimize,
-        }),
+        .root_module = mod,
     });
-
-    docs_obj.linkLibrary(lib);
-    docs_obj.addIncludePath(lz4_dependency.path("lib"));
 
     const install_docs = b.addInstallDirectory(.{
         .source_dir = docs_obj.getEmittedDocs(),

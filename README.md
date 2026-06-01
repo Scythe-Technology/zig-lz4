@@ -8,8 +8,8 @@ Unofficial Zig bindings for [LZ4](https://github.com/lz4/lz4).
 ## Features
 - LZ4 & LZ4Frame Compression
 - LZ4 & LZ4Frame Decompression
-- [Encoder](https://snorlaxassist.github.io/zig-lz4/#docs.Encoder) (based on LZ4Frame)
-- [Decoder](https://snorlaxassist.github.io/zig-lz4/#docs.Encoder) (based on LZ4Frame)
+- [Encoder](https://scythe-technology.github.io/zig-lz4/#docs.Encoder) (based on LZ4Frame)
+- [Decoder](https://scythe-technology.github.io/zig-lz4/#docs.Decoder) (based on LZ4Frame)
 
 ## Installation
 1. Add dependency to `build.zig.zon`
@@ -22,7 +22,7 @@ const ziglz4 = b.dependency("lz4", .{
     .target = target,
     .optimize = optimize,
 });
-exe.addModule("lz4", ziglz4.module("lz4"));
+exe.addModule("lz4", ziglz4.module("root"));
 ```
 
 ## Documentation
